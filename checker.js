@@ -1,86 +1,87 @@
 import fs from "fs";
 import path from "path";
+import https from "https";
 
+import * as core from "@actions/core";
 import dotenv from "dotenv";
 import axios from "axios";
 
 dotenv.config();
 
-const directoryPath = process.env.CHECK_PATH;
+const userAgentHeader = {
+  "User-Agent":
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+};
+
+const axiosInstance = axios.create({
+  timeout: 50000,
+  httpsAgent: new https.Agent({ keepAlive: true }),
+  headers: userAgentHeader,
+});
+
+const directoryPath = process.env.CHECK_PATH || core.getInput("check_path");
 const fileFormat = () => {
-  const formats = process.env.CHECK_FORMAT || "jpg,jpeg,png,gif,webp";
+  const formats =
+    process.env.CHECK_FORMAT ||
+    core.getInput("formats") ||
+    "jpg,jpeg,png,gif,webp";
   return formats.split(",").join("|");
 };
 
-function parseFiles(filePath) {
+async function parseFiles(filePath) {
   let isValid = true;
 
-  fs.readdir(filePath, (err, files) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-
-    files.forEach((file) => {
+  try {
+    const files = await fs.promises.readdir(filePath);
+    for (const file of files) {
       const fullPath = path.join(filePath, file);
-      fs.stat(fullPath, (err, stats) => {
-        if (err) {
-          console.error(err);
-          return;
-        }
+      const stats = await fs.promises.stat(fullPath);
 
-        if (stats.isFile()) {
-          isValid = isValid && parseFile(fullPath);
-        } else if (stats.isDirectory()) {
-          isValid = isValid && parseFiles(fullPath);
-        }
-      });
-    });
-  });
+      if (stats.isFile()) {
+        const fileValid = await parseFile(fullPath);
+        isValid = isValid && fileValid;
+      } else if (stats.isDirectory()) {
+        const directoryValid = await parseFiles(fullPath);
+        isValid = isValid && directoryValid;
+      }
+    }
+  } catch (err) {
+    console.error(err);
+  }
 
   return isValid;
 }
 
-function parseFile(filePath) {
+async function parseFile(filePath) {
   let isValid = true;
 
-  fs.readFile(filePath, "utf8", (err, content) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
+  try {
+    const content = await fs.promises.readFile(filePath, "utf8");
+    const imageUrlRegex = new RegExp(
+      `https?:\\/\\/[\\w\\-\\.\\/\\?#&+%]*\\.(${fileFormat()})[\\w\\-\\.\\/\\?#&+%=]*`,
+      "gi"
+    );
 
-    content.split(/\r?\n/).forEach((line) => {
-      const imageUrlRegex = new RegExp(
-        `https?:\\/\\/[\\w\\-\\.\\/\\?#&+%]*\.(${fileFormat()})`,
-        "gi"
-      );
-
-      const matches = line.match(imageUrlRegex);
-      if (matches) {
-        matches.forEach(async (match) => {
-          axios
-            .get(match)
-            .then((response) => {
-              if (response.status !== 200) {
-                console.error(`${response.status}: ${match}`);
-                isValid = false;
-              }
-            })
-            .catch((error) => {
-              console.error(`Error: ${match}, in file: ${filePath}`);
-              isValid = false;
-            });
+    const matches = content.match(imageUrlRegex);
+    if (matches) {
+      for (const match of matches) {
+        await axiosInstance.get(match).catch((error) => {
+          console.error(`Error: ${match}, in file: ${filePath}`);
+          isValid = false;
         });
       }
-    });
-  });
+    }
+  } catch (error) {
+    console.error(error);
+  }
 
   return isValid;
 }
 
-if (parseFiles(directoryPath) !== 0) {
-  const msg = "Some images are not accessible.";
-  console.error(msg);
-  core.setFailed(msg);
-}
+(async () => {
+  const result = await parseFiles(directoryPath);
+  if (!result) {
+    const msg = "Some images are not accessible.";
+    core.setFailed(msg);
+  }
+})();

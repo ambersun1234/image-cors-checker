@@ -1,0 +1,19 @@
+name: "Image CORS Checker"
+description: "Simple validation tool to check all image urls"
+author: "ambersun1234"
+inputs:
+  check_path:
+    description: "Path to check"
+    required: true
+  formats:
+    description: "Testnet account"
+    required: false
+    default: "jpg,jpeg,png,gif,webp"
+
+runs:
+  using: "node16"
+  main: "dist/main.js"
+
+branding:
+  icon: alert-triangle
+  color: yellow
