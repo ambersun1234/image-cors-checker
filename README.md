@@ -22,7 +22,8 @@ Please fill in the following 2 environment variables
 ## Run
 ```
 $ npm i
-$ node ./checker.js
+$ npm run build
+$ node ./dist/main.js
 ```
 
 ## Author

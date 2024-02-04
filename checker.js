@@ -79,4 +79,8 @@ function parseFile(filePath) {
   return isValid;
 }
 
-process.exitCode = parseFiles(directoryPath) ? 0 : 1;
+if (parseFiles(directoryPath) !== 0) {
+  const msg = "Some images are not accessible.";
+  console.error(msg);
+  core.setFailed(msg);
+}
