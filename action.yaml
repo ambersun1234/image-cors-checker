@@ -9,6 +9,9 @@ inputs:
     description: "Testnet account"
     required: false
     default: "jpg,jpeg,png,gif,webp"
+  white_list:
+    description: "Image url white list"
+    required: false
 
 runs:
   using: "node16"

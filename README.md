@@ -16,10 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: ambersun1234/image-cors-checker@v1.0.0
+      - uses: ambersun1234/image-cors-checker@v1.0.1
         with:
           check_path: ${{ github.workspace }}/_posts
           formats: 'jpg,jpeg,png,gif,webp'
+          white_list: ${{ env.WHITE_LIST }}
 ```
 
 ## Description
@@ -36,6 +37,8 @@ Please fill in the following 2 environment variables
     + You need to specify a directory, and the checker will go through every file within it, and check every matched urls
 + `FILE_FORMAT`
     + The default value is `jpg,jpeg,png,gif,webp`, you can specify more file extension to support your needs
++ `WHITE_LIST`
+    + For image url in the list, it will be considered as valid
 
 > note: Since this tool can run on both GitHub action and local machine, the variables are different\
 > The [Environment Variables](#environment-variables) section is only for local run, if you wish to run inside GitHub Action, please refer to [GitHub Action](#github-action)

@@ -19,6 +19,10 @@ const axiosInstance = axios.create({
   headers: userAgentHeader,
 });
 
+const whiteList = () => {
+  const whiteList = process.env.WHITE_LIST || core.getInput("white_list") || "";
+  return whiteList.split(",");
+}
 const directoryPath = process.env.CHECK_PATH || core.getInput("check_path");
 const fileFormat = () => {
   const formats =
@@ -66,8 +70,12 @@ async function parseFile(filePath) {
     if (matches) {
       for (const match of matches) {
         await axiosInstance.get(match).catch((error) => {
-          console.error(`Error: ${match}, in file: ${filePath}`);
-          isValid = false;
+          if (whiteList().includes(match)) { 
+            console.log(`WARNING: URL ${match} is in white list, bypassing check rule.`);
+          } else {
+            console.error(`Error: ${match}, in file: ${filePath}`);
+            isValid = false;
+          }
         });
       }
     }
