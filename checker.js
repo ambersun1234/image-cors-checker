@@ -73,7 +73,7 @@ async function parseFile(filePath) {
           if (whiteList().includes(match)) { 
             console.log(`WARNING: URL ${match} is in white list, bypassing check rule.`);
           } else {
-            console.error(`Error: ${match}, in file: ${filePath}`);
+            console.error(`Error: "${match}", in file: ${filePath}`);
             isValid = false;
           }
         });
